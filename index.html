@@ -355,10 +355,10 @@ const HOME = { name:"Home", icon:"🏡", ring:"var(--gold)", ll:[40.6347,-73.717
 
 const STOPS = [
   { i:1, name:"Into the City", time:"10:00 AM", tag:"All aboard", icon:"🚆",
-    loc:"Gibson LIRR → Penn Station", transit:"LIRR", legColor:"#C9A24B", walk:false,
+    loc:"Gibson Station → Penn Station", transit:"LIRR", legColor:"#C9A24B", walk:false,
     ll:[40.7506,-73.9935], zoom:10.5, durMul:1.5, sound:"train",
     path:[[40.6347,-73.7178],[40.681,-73.802],[40.719,-73.902],[40.7506,-73.9935]],
-    fact:"Penn Station is the busiest transit hub in the Western Hemisphere — more than 600,000 people pass through it on a typical weekday. And the Long Island Rail Road that carried us in is the oldest U.S. railroad still running under its original name, chartered back in 1834." },
+    fact:"Penn Station is the busiest transit hub in the Western Hemisphere — more than 600,000 people pass through it on a typical weekday. The original station, opened in 1910, was a Beaux-Arts landmark so beloved that its demolition in the 1960s helped spark the modern historic-preservation movement." },
 
   { i:2, name:"Thai Diner", time:"11:00 AM", tag:"Lunch", icon:"🍜",
     loc:"186 Mott St · NoLita", transit:"F train", legColor:"#FF6319", walk:false,
@@ -397,8 +397,14 @@ const STOPS = [
 function transitStyle(t){
   if(t==="F train") return {bg:"rgba(255,99,25,.14)",fg:"#C24E12",dot:"🟠"};
   if(t==="6 train") return {bg:"rgba(0,147,60,.14)",fg:"#00772F",dot:"🟢"};
-  if(t==="LIRR")    return {bg:"rgba(201,162,75,.16)",fg:"#9A7A2E",dot:"🚆"};
+  if(t==="LIRR")    return {bg:"rgba(201,162,75,.16)",fg:"#9A7A2E",dot:"🟡"};
   return {bg:"rgba(185,138,143,.16)",fg:"#8a5852",dot:"👟"};
+}
+// display label — kept generic (no specific train lines); colors above are unchanged
+function transitLabel(t){
+  if(t==="on foot") return "On foot";
+  if(t==="LIRR") return "By train";
+  return "By subway";
 }
 
 /* =========================================================================
@@ -862,7 +868,7 @@ const UI = {
         <div class="card" style="transform:translateY(14px) rotate(${tilt.toFixed(2)}deg)">
           <div class="washi"></div>
           <div class="locrow"><span>📍 ${stop.loc}</span>
-            <span class="pill" style="background:${ts.bg};color:${ts.fg}">${ts.dot} ${stop.transit}</span></div>
+            <span class="pill" style="background:${ts.bg};color:${ts.fg}">${ts.dot} ${transitLabel(stop.transit)}</span></div>
           <div class="fact">${stop.fact}</div>
           ${noteHtml}
         </div>
