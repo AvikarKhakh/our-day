@@ -63,11 +63,9 @@ body{
 /* ---------- PAPER OVERLAY (vignette + grain + fold + deckle) ---------- */
 #paper{position:absolute;inset:0;z-index:400;pointer-events:none;transition:box-shadow 1.4s ease, background 1.4s ease;}
 #paper.deep{--vig:.42;}
-#paper::before{ /* vignette + fold crease */
+#paper::before{ /* soft warm vignette around the edges */
   content:"";position:absolute;inset:0;
-  background:
-    radial-gradient(120% 90% at 50% 42%, transparent 55%, rgba(110,61,66,var(--vig,.24)) 100%),
-    linear-gradient(90deg, transparent 48.7%, rgba(110,61,66,.05) 49.6%, rgba(255,255,255,.14) 50%, rgba(110,61,66,.05) 50.4%, transparent 51.3%);
+  background:radial-gradient(120% 90% at 50% 42%, transparent 55%, rgba(110,61,66,var(--vig,.24)) 100%);
   transition:background 1.2s ease;
 }
 #paper::after{ /* subtle paper grain, static (perf-friendly) */
