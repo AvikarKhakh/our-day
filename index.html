@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#FBF3EA">
+<title>Our Day in the City</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%97%BA%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%97%BA%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Our Day">
+<meta property="og:title" content="Our Day in the City">
+<meta property="og:description" content="A surprise — one whole day, plotted out, just us.">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light only">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,500;1,600&family=Caveat:wght@500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+
+<style>
+/* =========================================================================
+   POSTMARKED — Our Day in the City
+   A vintage travel-journal that inks a route across NYC one stop at a time.
+   Single self-contained file. Mobile-first, cinematic, tasteful.
+   ========================================================================= */
+
+:root{
+  --bg:#FBF3EA; --panel:#FBF3EA; --border:#EBD9CC;
+  --ink:#6E3D42; --ink-soft:#9A6B61; --ink-softer:#B0866F; --fact:#7a5852;
+  --gold:#C9A24B; --gold-deep:#A9803A; --card:#FFFBF5; --card-border:#F0DECF;
+  --dot-empty:#E7D3C7; --water:#EDE4D9;
+  --lirr:#C9A24B; --f-train:#FF6319; --six-train:#00933C; --foot:#B98A8F; --park:#A9BC8C;
+  --shadow-pin:0 6px 16px rgba(110,61,66,.34);
+  --ease-glide:cubic-bezier(.22,1,.36,1);
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --appH:100vh;
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);}
+body{
+  font-family:'Nunito',sans-serif;color:var(--ink);
+  overflow:hidden;position:fixed;inset:0;
+  overscroll-behavior:none;-webkit-font-smoothing:antialiased;
+}
+::-webkit-scrollbar{width:7px;}
+::-webkit-scrollbar-thumb{background:#E2C4B5;border-radius:8px;}
+
+/* ---------- MAP ---------- */
+#map{position:absolute;inset:0;height:var(--appH);background:var(--water);z-index:1;}
+.leaflet-container{background:var(--water);font-family:'Nunito',sans-serif;outline:none;}
+.leaflet-tile-pane{filter:sepia(.32) saturate(.86) brightness(1.04) contrast(.95) hue-rotate(-7deg);}
+.leaflet-control-attribution{font-size:9px;background:rgba(255,249,242,.66)!important;color:#9A6B61;}
+.leaflet-control-attribution a{color:#9A6B61;}
+.leaflet-pane{will-change:transform;}
+
+/* ---------- PAPER OVERLAY (vignette + grain + fold + deckle) ---------- */
+#paper{position:absolute;inset:0;z-index:400;pointer-events:none;transition:box-shadow 1.4s ease, background 1.4s ease;}
+#paper.deep{--vig:.42;}
+#paper::before{ /* vignette + fold crease */
+  content:"";position:absolute;inset:0;
+  background:
+    radial-gradient(120% 90% at 50% 42%, transparent 55%, rgba(110,61,66,var(--vig,.24)) 100%),
+    linear-gradient(90deg, transparent 48.7%, rgba(110,61,66,.05) 49.6%, rgba(255,255,255,.14) 50%, rgba(110,61,66,.05) 50.4%, transparent 51.3%);
+  transition:background 1.2s ease;
+}
+#paper::after{ /* subtle paper grain, static (perf-friendly) */
+  content:"";position:absolute;inset:0;opacity:.5;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='0.045'/></svg>");
+}
+#deckle{position:absolute;left:0;right:0;top:0;height:14px;z-index:401;pointer-events:none;
+  background:repeating-linear-gradient(90deg, rgba(251,243,234,.9) 0 7px, rgba(251,243,234,.55) 7px 14px);
+  -webkit-mask:radial-gradient(circle at 7px 14px, transparent 6px, #000 6.5px) 0 0/14px 14px repeat-x;
+  mask:radial-gradient(circle at 7px 14px, transparent 6px, #000 6.5px) 0 0/14px 14px repeat-x;}
+
+/* ---------- MASTHEAD ---------- */
+#masthead{position:absolute;top:0;left:0;right:0;z-index:500;pointer-events:none;
+  padding:calc(env(safe-area-inset-top) + 13px) 18px 40px;
+  background:linear-gradient(180deg, rgba(251,243,234,.98) 0%, rgba(251,243,234,.92) 38%, rgba(251,243,234,.66) 68%, transparent 100%);
+  display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+#brand{text-shadow:0 1px 6px rgba(251,243,234,.9), 0 0 2px rgba(251,243,234,.9);}
+#brand .kicker{font-weight:800;font-size:10px;letter-spacing:2.4px;text-transform:uppercase;color:var(--gold);}
+#brand .title{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:27px;line-height:1;color:var(--ink);margin-top:2px;}
+#brand .date{font-family:'Caveat',cursive;font-size:18px;color:var(--ink-softer);margin-top:1px;}
+#topright{display:flex;flex-direction:column;align-items:flex-end;gap:9px;pointer-events:auto;}
+#mute{width:42px;height:42px;border-radius:50%;border:1.5px solid #E5C9BC;background:
+  radial-gradient(circle at 35% 30%, #F6E4C9, var(--gold) 78%);
+  color:#5b3a1e;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 7px rgba(110,61,66,.24), inset 0 1px 2px rgba(255,255,255,.5);}
+#mute:active{transform:scale(.94);}
+#meter{display:flex;gap:4px;align-items:center;}
+#meter .notch{width:15px;height:5px;border-radius:3px;background:var(--dot-empty);transition:background .45s var(--ease-glide), box-shadow .45s;}
+#meter .notch.on{background:var(--gold);box-shadow:0 0 6px rgba(201,162,75,.5);}
+
+/* ---------- WANDER CAPTION ---------- */
+#caption{position:absolute;top:calc(env(safe-area-inset-top) + 96px);left:50%;z-index:520;
+  transform:translateX(-50%) translateY(-8px) rotate(-4deg);
+  background:rgba(110,61,66,.93);color:#FFF3EA;font-family:'Caveat',cursive;font-size:22px;
+  padding:8px 20px;border-radius:999px;box-shadow:0 10px 24px rgba(110,61,66,.32);
+  white-space:nowrap;pointer-events:none;opacity:0;visibility:hidden;}
+#caption.show{visibility:visible;animation:capIn .4s var(--ease-spring) forwards, capWiggle 1.6s ease-in-out .4s infinite;}
+#caption.hide{visibility:visible;animation:capOut .4s ease forwards;}
+@keyframes capIn{from{transform:translateX(-50%) translateY(-14px) rotate(-4deg);opacity:0;}to{transform:translateX(-50%) translateY(0) rotate(-3deg);opacity:1;}}
+@keyframes capOut{to{transform:translateX(-50%) translateY(-10px) rotate(-3deg);opacity:0;}}
+@keyframes capWiggle{0%,100%{transform:translateX(-50%) rotate(-3deg);}50%{transform:translateX(-50%) rotate(1.5deg);}}
+
+/* ---------- MAP PINS (postmark stamps) ---------- */
+.pin{width:52px;height:52px;}
+.stamp{width:52px;height:52px;border-radius:50%;background:var(--card);
+  display:flex;align-items:center;justify-content:center;font-size:24px;position:relative;
+  box-shadow:var(--shadow-pin);}
+.stamp::before{content:"";position:absolute;inset:3px;border-radius:50%;
+  border:2px dashed var(--ring,#C9A24B);opacity:.85;}
+.stamp::after{content:"";position:absolute;inset:-1px;border-radius:50%;
+  border:3px solid var(--ring,#C9A24B);}
+.pin.drop .stamp{animation:stampDrop .5s var(--ease-spring) both;}
+.pin.drop.bleed .stamp{animation:stampDrop .5s var(--ease-spring) both, inkBleed .34s ease .04s both;}
+@keyframes stampDrop{0%{transform:scale(1.45) rotate(9deg);}60%{transform:scale(.96) rotate(-3deg);}100%{transform:scale(1) rotate(-2deg);}}
+@keyframes inkBleed{0%{filter:blur(3px) saturate(.4);}100%{filter:blur(0) saturate(1);}}
+.pin.home .stamp{box-shadow:0 5px 13px rgba(110,61,66,.3);}
+
+/* pen tip that leads the drawing line */
+.pentip{width:14px;height:14px;}
+.pentip .dot{width:9px;height:9px;border-radius:50%;background:#5b4038;margin:2.5px;
+  box-shadow:0 0 0 3px rgba(91,64,56,.18), 0 1px 3px rgba(0,0,0,.3);}
+
+/* ---------- SPARKLES (Sant Ambroeus) ---------- */
+#sparkles{position:absolute;inset:0;z-index:530;pointer-events:none;overflow:hidden;}
+.sparkle{position:absolute;font-size:18px;will-change:transform,opacity;}
+@keyframes sparkleUp{0%{transform:translateY(0) scale(.4) rotate(0);opacity:0;}
+  20%{opacity:1;}100%{transform:translateY(-90px) scale(1.1) rotate(40deg);opacity:0;}}
+
+/* ---------- BOTTOM SHEET ---------- */
+#actionbar{position:fixed;left:0;right:0;bottom:0;z-index:660;
+  padding:11px 18px calc(11px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg, rgba(255,251,245,.4), var(--card) 42%);
+  border-top:1px solid var(--card-border);box-shadow:0 -6px 20px rgba(110,61,66,.1);}
+
+#sheet{position:fixed;left:0;right:0;bottom:calc(74px + env(safe-area-inset-bottom));z-index:600;
+  height:70vh;height:70dvh;background:var(--card);
+  border-radius:20px 20px 0 0;border-top:1px solid var(--card-border);
+  box-shadow:0 -14px 40px rgba(110,61,66,.16);
+  transform:translateY(88%);
+  transition:transform .52s var(--ease-glide);
+  display:flex;flex-direction:column;}
+#sheet.dragging{transition:none;}
+#grab{flex:none;padding:10px 0 4px;display:flex;justify-content:center;cursor:grab;touch-action:none;}
+#grab .bar{width:40px;height:5px;border-radius:3px;
+  background:repeating-linear-gradient(90deg,var(--gold) 0 5px, transparent 5px 8px), var(--gold);
+  background-blend-mode:normal;box-shadow:0 1px 2px rgba(110,61,66,.2);}
+#grab .bar{background:var(--gold);position:relative;}
+#grab .bar::after{content:"";position:absolute;inset:0;border-radius:3px;
+  background-image:repeating-linear-gradient(90deg, rgba(255,255,255,.55) 0 2px, transparent 2px 5px);}
+
+#primary{width:100%;padding:15px;border:none;border-radius:14px;
+  background:linear-gradient(180deg,#C69E45,#B58C2E);color:#fff;
+  font-family:'Nunito';font-weight:800;font-size:16px;letter-spacing:.3px;cursor:pointer;
+  box-shadow:0 6px 18px rgba(201,162,75,.36), inset 0 1px 0 rgba(255,255,255,.35);
+  transition:transform .14s var(--ease-spring), opacity .25s;
+  display:flex;align-items:center;justify-content:center;gap:8px;}
+#primary .cav{font-family:'Caveat',cursive;font-weight:700;font-size:22px;}
+#primary:active{transform:scale(.96);}
+#primary[disabled]{opacity:.5;cursor:default;}
+#primary.pulse{animation:softpulse 2.4s ease-in-out infinite;}
+@keyframes softpulse{0%,100%{box-shadow:0 6px 18px rgba(201,162,75,.36), inset 0 1px 0 rgba(255,255,255,.35);}
+  50%{box-shadow:0 10px 28px rgba(201,162,75,.5), inset 0 1px 0 rgba(255,255,255,.35);transform:scale(1.02);}}
+
+#stubs{flex:1;min-height:0;overflow-y:auto;padding:2px 18px 26px;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;}
+#introMsg{height:100%;min-height:34vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px 12px 24px;}
+#introMsg .emoji{font-size:42px;animation:floaty 3.4s ease-in-out infinite;}
+#introMsg .lead{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:24px;color:var(--ink);margin-top:12px;line-height:1.24;}
+#introMsg .sub{font-weight:500;font-size:13.5px;color:var(--ink-soft);margin-top:11px;line-height:1.6;max-width:300px;}
+@keyframes floaty{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
+
+/* ticket stub */
+.stub{display:flex;gap:6px;margin-top:2px;}
+.stub .rail{position:relative;width:44px;flex:none;}
+.stub .conn{position:absolute;left:21px;top:0;bottom:0;width:0;border-left:2px solid var(--legc,#C9A24B);}
+.stub.walk .conn{border-left-style:dashed;}
+.stub:first-child .conn{top:20px;}
+.stub .node{position:absolute;left:2px;top:2px;width:40px;height:40px;border-radius:50%;
+  background:var(--card);border:3px solid var(--ring,#C9A24B);display:flex;align-items:center;justify-content:center;
+  font-size:18px;box-shadow:0 3px 7px rgba(110,61,66,.18);}
+.stub .body{flex:1;min-width:0;padding:1px 0 20px;}
+.stub .meta{font-weight:800;font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:#9A7526;}
+.stub .name-wipe{position:relative;overflow:hidden;display:inline-block;max-width:100%;margin-top:2px;}
+.stub .name{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:22px;color:var(--ink);line-height:1.1;white-space:normal;}
+.stub .name-wipe::after{content:"";position:absolute;inset:-2px;
+  background:linear-gradient(90deg,var(--card) 0 calc(100% - 3px), var(--gold) 100%);
+  transform:translateX(0);}
+.stub.reveal .name-wipe::after{animation:wipe .52s var(--ease-glide) .05s forwards;}
+@keyframes wipe{to{transform:translateX(103%);}}
+.stub .card{margin-top:9px;background:#FFFDF9;border:1px solid var(--card-border);
+  border-left:3px solid var(--ring,#C9A24B);border-radius:11px;padding:12px 14px 13px;
+  box-shadow:0 8px 20px rgba(110,61,66,.08);position:relative;
+  transform:translateY(14px);}
+.stub.reveal .card{animation:cardUp .5s var(--ease-spring) .08s both;}
+@keyframes cardUp{to{transform:translateY(0);}}
+.stub .card .locrow{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-weight:700;font-size:12px;color:var(--ink-soft);}
+.stub .pill{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;font-size:11px;}
+.stub .card .fact{font-weight:500;font-size:13.5px;line-height:1.6;color:var(--fact);margin-top:9px;}
+.stub .card .note{font-family:'Caveat',cursive;font-size:19px;color:var(--gold-deep);margin-top:8px;}
+.stub .washi{position:absolute;top:-7px;right:16px;width:44px;height:16px;transform:rotate(6deg);
+  background:repeating-linear-gradient(45deg, rgba(201,162,75,.34) 0 5px, rgba(201,162,75,.16) 5px 10px);
+  border:1px solid rgba(201,162,75,.25);opacity:.9;}
+/* collapsed past stub */
+.stub.past .card{display:none;}
+.stub.past .body{padding-bottom:16px;}
+.stub.past .name{font-size:19px;}
+
+.secret{display:flex;gap:6px;opacity:.5;margin-top:2px;}
+.secret .rail{position:relative;width:44px;flex:none;}
+.secret .conn{position:absolute;left:21px;top:0;height:20px;width:0;border-left:2px dotted var(--gold);}
+.secret .q{position:absolute;left:8px;top:16px;width:28px;height:28px;border-radius:50%;
+  background:#F4E7DA;border:2px dashed var(--gold);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--gold);}
+.secret .t{flex:1;padding:19px 0 0;font-family:'Caveat',cursive;font-size:18px;color:var(--ink-softer);}
+
+/* ---------- INTRO COVER ---------- */
+#cover{position:absolute;inset:0;z-index:800;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;padding:30px;
+  background:radial-gradient(120% 100% at 50% 35%, #FDF6EC, #F1E2D2 90%);
+  transition:opacity .8s ease, visibility .8s;}
+#cover.gone{opacity:0;visibility:hidden;}
+#cover.breaking,#cover.gone{pointer-events:none;}
+#cover .frame{border:1px solid rgba(201,162,75,.5);border-radius:6px;padding:44px 34px 40px;
+  position:relative;max-width:340px;box-shadow:0 20px 60px rgba(110,61,66,.14), inset 0 0 0 6px rgba(255,255,255,.4);
+  background:linear-gradient(180deg,#FFFDF9,#FBF1E4);}
+#cover .frame::before{content:"";position:absolute;inset:6px;border:1px solid rgba(201,162,75,.28);border-radius:3px;pointer-events:none;}
+#cover .kicker{font-weight:800;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);}
+#cover h1{font-family:'Cormorant Garamond',serif;font-weight:600;font-size:40px;line-height:1.04;color:var(--ink);margin:12px 0 0;}
+#cover h1 em{font-style:italic;color:var(--gold-deep);}
+#cover .sub{font-family:'Caveat',cursive;font-size:22px;color:var(--ink-softer);margin-top:10px;}
+#cover .compass{font-size:34px;margin-top:14px;animation:floaty 3.4s ease-in-out infinite;}
+#openBtn{margin:26px auto 0;border:none;cursor:pointer;background:none;display:flex;flex-direction:column;align-items:center;gap:9px;}
+#seal{width:76px;height:76px;border-radius:50%;
+  background:radial-gradient(circle at 36% 30%, #E4B75E, var(--gold-deep) 82%);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;
+  box-shadow:0 8px 20px rgba(169,128,58,.5), inset 0 2px 4px rgba(255,255,255,.4), inset 0 -3px 6px rgba(90,60,20,.4);
+  border:2px solid rgba(255,255,255,.35);animation:sealPulse 2.6s ease-in-out infinite;position:relative;}
+#seal::after{content:"";position:absolute;inset:6px;border-radius:50%;border:1.5px dashed rgba(255,255,255,.5);}
+#openBtn .lbl{font-weight:800;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--gold-deep);}
+#openBtn:active #seal{transform:scale(.94);}
+@keyframes sealPulse{0%,100%{box-shadow:0 8px 20px rgba(169,128,58,.5), inset 0 2px 4px rgba(255,255,255,.4), inset 0 -3px 6px rgba(90,60,20,.4);}
+  50%{box-shadow:0 12px 30px rgba(169,128,58,.66), inset 0 2px 4px rgba(255,255,255,.4), inset 0 -3px 6px rgba(90,60,20,.4);transform:scale(1.03);}}
+#cover.breaking #seal{animation:sealBreak .7s var(--ease-spring) forwards;}
+@keyframes sealBreak{40%{transform:scale(1.12) rotate(-4deg);}100%{transform:scale(.2) rotate(-18deg);opacity:0;}}
+
+/* ---------- FINALE STAMP ---------- */
+#finale{position:absolute;top:50%;left:50%;z-index:540;pointer-events:none;
+  transform:translate(-50%,-50%) scale(1.5) rotate(-12deg);opacity:0;visibility:hidden;
+  width:min(74vw,320px);height:min(74vw,320px);color:rgba(110,61,66,.9);}
+#finale.thunk{visibility:visible;animation:thunk .5s var(--ease-spring) forwards;}
+@keyframes thunk{0%{transform:translate(-50%,-50%) scale(1.5) rotate(-12deg);opacity:0;}
+  55%{transform:translate(-50%,-50%) scale(.94) rotate(-9deg);opacity:1;}
+  100%{transform:translate(-50%,-50%) scale(1) rotate(-8deg);opacity:.92;}}
+#finale svg{width:100%;height:100%;overflow:visible;}
+#finale .ring{fill:none;stroke:rgba(110,61,66,.55);}
+#finale .arc-txt{font-family:'Nunito',sans-serif;font-weight:800;font-size:15.5px;letter-spacing:4px;fill:rgba(110,61,66,.82);}
+#finale .center-em{font-size:52px;}
+#finale .for-bella{font-family:'Caveat',cursive;font-size:26px;fill:var(--gold-deep);}
+
+/* ---------- desktop ---------- */
+@media (min-width:820px){
+  #sheet{left:auto;right:0;top:0;bottom:calc(82px + env(safe-area-inset-bottom));width:390px;height:auto;
+    border-radius:0;border-top:none;border-left:1px solid var(--border);
+    box-shadow:-10px 0 34px rgba(110,61,66,.1);
+    transform:none!important;transition:none;}
+  #grab{display:none;}
+  #stubs{padding:88px 22px 16px;}
+  #actionbar{left:auto;right:0;width:390px;border-left:1px solid var(--border);
+    background:var(--card);}
+  #masthead{right:390px;}
+  #brand .title{font-size:34px;}
+  #caption{right:390px;left:calc((100% - 390px)/2);}
+  #finale{left:calc((100% - 390px)/2);}
+  #cover{padding-right:390px;}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;animation-iteration-count:1!important;}
+  #paper::after{display:none;}
+}
+</style>
+</head>
+<body>
+  <div id="map"></div>
+  <div id="live" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;"></div>
+
+  <div id="paper"><span></span></div>
+  <div id="deckle"></div>
+  <div id="sparkles"></div>
+
+  <header id="masthead">
+    <div id="brand">
+      <div class="kicker">A surprise for you</div>
+      <div class="title">Our Day in the City</div>
+      <div class="date">Thursday · July 2nd · just us</div>
+    </div>
+    <div id="topright">
+      <button id="mute" aria-label="Toggle sound">🔊</button>
+      <div id="meter" role="progressbar" aria-label="Stops revealed" aria-valuemin="0" aria-valuemax="6" aria-valuenow="0"></div>
+    </div>
+  </header>
+
+  <div id="caption"></div>
+
+  <div id="finale">
+    <svg viewBox="0 0 320 320" aria-hidden="true">
+      <defs><path id="arcTop" d="M 40,160 A 120,120 0 0 1 280,160"/><path id="arcBot" d="M 44,160 A 116,116 0 0 0 276,160"/></defs>
+      <circle class="ring" cx="160" cy="160" r="150" stroke-width="2"/>
+      <circle class="ring" cx="160" cy="160" r="140" stroke-width="1" stroke-dasharray="2 7"/>
+      <text class="arc-txt"><textPath href="#arcTop" startOffset="50%" text-anchor="middle">OUR DAY · JUL 2</textPath></text>
+      <text class="arc-txt"><textPath href="#arcBot" startOffset="50%" text-anchor="middle">· NYC ·</textPath></text>
+      <text class="center-em" x="160" y="150" text-anchor="middle">💌</text>
+      <text class="for-bella" x="160" y="196" text-anchor="middle">for Bella</text>
+    </svg>
+  </div>
+
+  <section id="sheet" aria-label="Itinerary">
+    <div id="grab"><div class="bar"></div></div>
+    <div id="stubs">
+      <div id="introMsg">
+        <div class="emoji">🗺️</div>
+        <div class="lead">A whole day, plotted out —<br>from our doorstep, Bella.</div>
+        <div class="sub">Press begin and I'll trace our route across the city, one stop at a time, with a little about each place along the way.</div>
+      </div>
+    </div>
+  </section>
+
+  <div id="actionbar">
+    <button id="primary" class="pulse"><span class="txt">Begin our day</span> <span class="cav">✦</span></button>
+  </div>
+
+  <div id="cover">
+    <div class="frame">
+      <div class="kicker">Thursday · July 2nd</div>
+      <h1>A Day<br>for <em>Bella</em></h1>
+      <div class="sub">pack light — I've got the whole day</div>
+      <div class="compass">🧭</div>
+      <button id="openBtn" aria-label="Open">
+        <div id="seal">✦</div>
+        <div class="lbl">Open</div>
+      </button>
+    </div>
+  </div>
+
+<script>
+/* =========================================================================
+   DATA
+   ========================================================================= */
+const HOME = { name:"Home", icon:"🏡", ring:"var(--gold)", ll:[40.6347,-73.7178] };
+
+const STOPS = [
+  { i:1, name:"Into the City", time:"10:00 AM", tag:"All aboard", icon:"🚆",
+    loc:"Gibson LIRR → Penn Station", transit:"LIRR", legColor:"#C9A24B", walk:false,
+    ll:[40.7506,-73.9935], zoom:10.5, durMul:1.5, sound:"train",
+    path:[[40.6347,-73.7178],[40.681,-73.802],[40.719,-73.902],[40.7506,-73.9935]],
+    fact:"Penn Station is the busiest transit hub in the Western Hemisphere — more than 600,000 people pass through it on a typical weekday. And the Long Island Rail Road that carried us in is the oldest U.S. railroad still running under its original name, chartered back in 1834." },
+
+  { i:2, name:"Thai Diner", time:"11:00 AM", tag:"Lunch", icon:"🍜",
+    loc:"186 Mott St · NoLita", transit:"F train", legColor:"#FF6319", walk:false,
+    ll:[40.7205,-73.9965], zoom:13, durMul:1.15, sound:"food",
+    path:[[40.7506,-73.9935],[40.740,-73.9950],[40.730,-73.9972],[40.7205,-73.9965]],
+    fact:"From the chefs behind the much-missed Uncle Boons, Thai Diner mashes a classic American diner together with regional Thai cooking. The neighborhood, NoLita, is short for “North of Little Italy.”" },
+
+  { i:3, name:"Don Quixote at Lincoln Center", time:"2:00 PM", tag:"Showtime", icon:"🩰",
+    loc:"David H. Koch Theater · Lincoln Center", transit:"on foot", legColor:"#B98A8F", walk:true,
+    ll:[40.7725,-73.9835], zoom:13, durMul:2.15, sound:"ballet", wander:true,
+    caption:"the scenic route, Bella… 🚶‍♀️🚶",
+    path:[[40.7205,-73.9965],[40.7270,-73.9900],[40.7350,-73.9982],[40.7440,-73.9884],[40.7530,-73.9974],[40.7625,-73.9862],[40.7725,-73.9835]],
+    fact:"Don Quixote is a sun-drenched comic ballet first staged by Marius Petipa for Moscow's Bolshoi in 1869, set to Ludwig Minkus's bright, dancey score. Despite the title, the knight himself mostly looks on — the real story is the romance of fiery Kitri and Basilio, and the finale is famous for its dazzling string of 32 fouetté turns." },
+
+  { i:4, name:"Stroll Central Park", time:"4:15 PM", tag:"Fresh air", icon:"🌳", ring:"#A9BC8C",
+    loc:"Columbus Circle, into the park", transit:"on foot", legColor:"#B98A8F", walk:true,
+    ll:[40.7681,-73.9819], zoom:13, durMul:1.0, sound:"park",
+    path:[[40.7725,-73.9835],[40.7703,-73.9827],[40.7681,-73.9819]],
+    fact:"Central Park (1858) was the first major landscaped public park in the United States. Nearly every one of its 843 acres is man-made — shaped from swamp and bare rock by Olmsted & Vaux's winning “Greensward” plan." },
+
+  { i:5, name:"Sant Ambroeus", time:"4:45 PM", tag:"Sweet treat", icon:"🍰",
+    loc:"Madison Ave · Upper East Side", transit:"on foot", legColor:"#B98A8F", walk:true,
+    ll:[40.7773,-73.9626], zoom:13, durMul:2.0, sound:"cake", wander:true, favorite:true,
+    caption:"we've got time to wander… 🍰",
+    note:"your favorite — I remembered ♡",
+    path:[[40.7681,-73.9819],[40.7712,-73.9742],[40.7690,-73.9680],[40.7752,-73.9642],[40.7726,-73.9602],[40.7773,-73.9626]],
+    fact:"Sant Ambroeus opened in 1936 as a Milanese pasticceria, named for the patron saint of Milan. Its Principessa cake — bright lemon sponge layered with vanilla pastry cream and whipped cream, all wrapped in a blush of pink almond marzipan — is the house legend." },
+
+  { i:6, name:"Mama Mezze", time:"6:45 PM", tag:"Dinner", icon:"🥙",
+    loc:"1123 Broadway · NoMad", transit:"6 train", legColor:"#00933C", walk:false,
+    ll:[40.7420,-73.9890], zoom:13, durMul:1.3, sound:"food", final:true,
+    path:[[40.7773,-73.9626],[40.7650,-73.9662],[40.7505,-73.9788],[40.7420,-73.9890]],
+    fact:"We end the day in NoMad — “North of Madison Square Park,” one of the city's newer neighborhood names — over Eastern-Mediterranean mezze on Broadway. The perfect last stop." },
+];
+
+function transitStyle(t){
+  if(t==="F train") return {bg:"rgba(255,99,25,.14)",fg:"#C24E12",dot:"🟠"};
+  if(t==="6 train") return {bg:"rgba(0,147,60,.14)",fg:"#00772F",dot:"🟢"};
+  if(t==="LIRR")    return {bg:"rgba(201,162,75,.16)",fg:"#9A7A2E",dot:"🚆"};
+  return {bg:"rgba(185,138,143,.16)",fg:"#8a5852",dot:"👟"};
+}
+
+/* =========================================================================
+   ENVIRONMENT / CAPABILITY
+   ========================================================================= */
+const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const CAN_BLUR = (function(){ try{ return !REDUCED && CSS.supports("filter","blur(3px)"); }catch(e){ return false; } })();
+const isDesktop = () => window.innerWidth >= 820;
+
+function setAppHeight(){ document.documentElement.style.setProperty("--appH", window.innerHeight + "px"); }
+setAppHeight();
+
+/* =========================================================================
+   AUDIO ENGINE (synthesized, no files)
+   ========================================================================= */
+const Audio = {
+  ctx:null, master:null, bed:null, bedGain:null, muted:false, started:false,
+  unlock(){
+    if(this.ctx){ if(this.ctx.state!=="running") this.ctx.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    this.ctx = new AC();
+    this.master = this.ctx.createGain();
+    this.master.gain.value = this.muted ? 0 : 0.9;
+    this.master.connect(this.ctx.destination);
+    if(this.ctx.state!=="running") this.ctx.resume();
+    this.startBed();
+    this.started = true;
+  },
+  setMuted(m){ this.muted=m; if(this.master) this.master.gain.setTargetAtTime(m?0:0.9, this.ctx.currentTime, .02); },
+  startBed(){
+    if(!this.ctx || this.bed) return;
+    // very soft paper-rustle bed
+    const dur=2.4, n=Math.floor(this.ctx.sampleRate*dur);
+    const buf=this.ctx.createBuffer(1,n,this.ctx.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<n;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/n,.2);
+    const src=this.ctx.createBufferSource(); src.buffer=buf; src.loop=true;
+    const f=this.ctx.createBiquadFilter(); f.type="bandpass"; f.frequency.value=1200; f.Q.value=.5;
+    const g=this.ctx.createGain(); g.gain.value=0.006;
+    src.connect(f); f.connect(g); g.connect(this.master);
+    src.start(); this.bed=src; this.bedGain=g;
+  },
+  duckBed(amt,rel){ if(this.bedGain){ const t=this.ctx.currentTime; this.bedGain.gain.setTargetAtTime(amt,t,.05); this.bedGain.gain.setTargetAtTime(0.006,t+(rel||.6),.3); } },
+  tone(freq,start,dur,type,gain,glide){
+    if(!this.ctx) return;
+    const o=this.ctx.createOscillator(), g=this.ctx.createGain();
+    o.type=type||"sine"; o.frequency.setValueAtTime(freq,start);
+    if(glide) o.frequency.exponentialRampToValueAtTime(glide,start+dur);
+    g.gain.setValueAtTime(0.0001,start);
+    g.gain.exponentialRampToValueAtTime(gain,start+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,start+dur);
+    o.connect(g); g.connect(this.master); o.start(start); o.stop(start+dur+0.05);
+  },
+  noise(start,dur,type,freq,q,gain){
+    if(!this.ctx) return;
+    const n=Math.floor(this.ctx.sampleRate*dur);
+    const buf=this.ctx.createBuffer(1,n,this.ctx.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<n;i++) d[i]=Math.random()*2-1;
+    const src=this.ctx.createBufferSource(); src.buffer=buf;
+    const f=this.ctx.createBiquadFilter(); f.type=type; f.frequency.value=freq; f.Q.value=q||1;
+    const g=this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001,start);
+    g.gain.linearRampToValueAtTime(gain,start+0.03);
+    g.gain.exponentialRampToValueAtTime(0.0001,start+dur);
+    src.connect(f); f.connect(g); g.connect(this.master); src.start(start); src.stop(start+dur+0.02);
+  },
+  // pencil scratch, gain tracked externally via a returned gain node
+  pencil(dur){
+    if(!this.ctx) return null;
+    const t=this.ctx.currentTime;
+    this.noise(t,dur||1.1,"bandpass",1650,0.7,0.05);
+    this.noise(t,dur||1.1,"highpass",3200,0.5,0.014);
+  },
+  play(name,dur){
+    this.unlock(); if(!this.ctx) return;
+    const t=this.ctx.currentTime;
+    switch(name){
+      case "click": this.tone(760,t,0.06,"triangle",0.16,1060); break;
+      case "kachunk":
+        this.tone(150,t,0.09,"square",0.10,90);
+        this.noise(t,0.08,"lowpass",900,1,0.05); this.duckBed(0.002,.3); break;
+      case "pock": this.tone(320,t,0.12,"sine",0.14,180); this.noise(t,0.05,"bandpass",2000,1,0.03); break;
+      case "pencil": this.pencil(dur); this.duckBed(0.002,dur||1.1); break;
+      case "train":
+        for(let k=0;k<4;k++){ this.tone(150,t+k*0.13,0.09,"square",0.05,120); this.noise(t+k*0.13,0.08,"lowpass",360,1,0.03); }
+        this.tone(660,t+0.56,0.5,"sine",0.07,600); this.tone(990,t+0.56,0.5,"sine",0.045); break;
+      case "food":
+        this.tone(880,t,0.5,"sine",0.17); this.tone(1320,t,0.5,"sine",0.08);
+        this.noise(t+0.04,0.4,"highpass",5200,0.3,0.02); break;
+      case "ballet":
+        [659,784,988,1319,1568].forEach((f,i)=>this.tone(f,t+i*0.15,0.9,"triangle",0.11)); break;
+      case "park":
+        [880,1175,1047].forEach((f,i)=>this.tone(f,t+i*0.19,0.75,"sine",0.1,f*1.005)); break;
+      case "cake":
+        [1047,1319,1568,2093,2637,3136].forEach((f,i)=>this.tone(f,t+i*0.07,0.5,"sine",0.1)); break;
+      case "final":
+        [523,659,784,1047].forEach((f)=>{ this.tone(f,t,1.7,"sine",0.08); this.tone(f*2,t,1.7,"triangle",0.02); });
+        this.tone(1568,t+0.15,1.4,"sine",0.05); this.duckBed(0.002,1.6); break;
+      case "sparkle":
+        [1568,1976,2349,2637,3136].forEach((f,i)=>this.tone(f,t+i*0.05,0.4,"sine",0.07)); break;
+    }
+  }
+};
+
+/* =========================================================================
+   MAP DIRECTOR — the cinematic centerpiece
+   ========================================================================= */
+const Director = {
+  map:null, renderer:null, homeMarker:null, segs:[], marks:[], penTip:null,
+  raf:null, watchdog:null,
+  init(){
+    const L=window.L;
+    this.map = L.map("map",{
+      zoomControl:false, attributionControl:true,
+      dragging:false, scrollWheelZoom:false, doubleClickZoom:false, boxZoom:false,
+      keyboard:false, touchZoom:false, tap:false, zoomSnap:0, fadeAnimation:true
+    });
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{
+      subdomains:"abcd", maxZoom:19, crossOrigin:true,
+      attribution:'&copy; OpenStreetMap &copy; CARTO'
+    }).addTo(this.map);
+    this.map.setView(HOME.ll, this.homeZoom());
+    this.addHome();
+    setTimeout(()=>{ if(this.map){ this.map.invalidateSize(); this.resetView(false); } }, 260);
+  },
+  homeZoom(){ return isDesktop() ? 10.7 : 10.4; },
+  mastheadH(){ return isDesktop() ? 96 : 132; },
+  // Vertical camera offset (px) so the framed point lands inside the VISIBLE map band
+  // (above the bottom sheet), not the geometric centre. `mode`: 'draw' (sheet peeking)
+  // or 'settle' (sheet at half).
+  frameOffset(mode){
+    if(isDesktop()) return 0;
+    const H=window.innerHeight, top=this.mastheadH();
+    const bottom = mode==="settle" ? H*0.54 : (H-130);
+    const frac = mode==="settle" ? 0.46 : 0.42;
+    const desiredY = top + (bottom-top)*frac;
+    return H/2 - desiredY;
+  },
+  // return a centre latlng such that `ll` renders at the framed screen position
+  framed(ll, zoom, offPx){
+    try{ const p=this.map.project(ll, zoom); p.y += offPx; return this.map.unproject(p, zoom); }
+    catch(e){ return ll; }
+  },
+  resetView(animate){
+    if(!this.map) return;
+    const z=this.homeZoom();
+    try{ this.map.setView(this.framed(HOME.ll, z, this.frameOffset("settle")), z, {animate:!!animate}); }catch(e){}
+  },
+  makeStamp(cls, ring, icon, size){
+    const L=window.L;
+    return L.divIcon({ className:"", iconSize:[size,size], iconAnchor:[size/2,size/2],
+      html:`<div class="pin ${cls}"><div class="stamp" style="--ring:${ring}">${icon}</div></div>` });
+  },
+  addHome(){
+    if(this.homeMarker) return;
+    const L=window.L;
+    this.homeMarker = L.marker(HOME.ll,{icon:this.makeStamp("home","var(--gold)","🏡",52),interactive:false,keyboard:false}).addTo(this.map);
+  },
+  addStopPin(stop){
+    if(!this.map || !window.L) return;
+    const L=window.L, ring=stop.ring||"#C9A24B";
+    const cls = "drop" + (CAN_BLUR ? " bleed" : "");
+    const m = L.marker(stop.ll,{icon:this.makeStamp(cls,ring,stop.icon,52),interactive:false,keyboard:false}).addTo(this.map);
+    this.marks.push(m);
+  },
+  ensureRenderer(){
+    const L=window.L;
+    if(!this.renderer){ this.renderer=L.svg({padding:1}); this.renderer.addTo(this.map); }
+    try{ if(this.renderer._update) this.renderer._update(); }catch(e){}
+  },
+  densify(wps,per){
+    const L=window.L, out=[];
+    for(let i=0;i<wps.length-1;i++){
+      const a=L.latLng(wps[i]), b=L.latLng(wps[i+1]);
+      for(let j=0;j<per;j++){ const f=j/per; out.push(L.latLng(a.lat+(b.lat-a.lat)*f, a.lng+(b.lng-a.lng)*f)); }
+    }
+    out.push(L.latLng(wps[wps.length-1]));
+    return out;
+  },
+  buildPoints(stop){
+    const wps = stop.path && stop.path.length>1 ? stop.path : [STOPS[stop.i-2] ? STOPS[stop.i-2].ll : HOME.ll, stop.ll];
+    const per = stop.wander ? 9 : 24;
+    return this.densify(wps, per);
+  },
+  addPenTip(ll){
+    const L=window.L;
+    this.penTip = L.marker(ll,{icon:L.divIcon({className:"",iconSize:[14,14],iconAnchor:[7,7],html:'<div class="pentip"><div class="dot"></div></div>'}),interactive:false,keyboard:false}).addTo(this.map);
+  },
+  removePenTip(){ if(this.penTip){ try{this.map.removeLayer(this.penTip);}catch(e){} this.penTip=null; } },
+
+  // draw the leg into `stop`, gliding the camera along it at LOCKED zoom
+  animateLeg(stop, done){
+    const L=window.L, map=this.map;
+    if(!map){ done(); return; }
+    const points = this.buildPoints(stop);
+    const targetZoom = stop.zoom || 13;
+    const drawOff = this.frameOffset("draw");
+    const baseMs = REDUCED ? 500 : 1200;
+    const durMs = baseMs * (stop.durMul||1);
+    const color = stop.legColor || "#B98A8F";
+    const weight = stop.walk ? 5 : 6.5;
+
+    this.ensureRenderer();
+    let poly;
+    try{ poly = L.polyline([points[0]],{color,weight,lineCap:"round",lineJoin:"round",opacity:.95,renderer:this.renderer,noClip:true}).addTo(map); }
+    catch(e){ poly = L.polyline(points,{color,weight,renderer:this.renderer,noClip:true}).addTo(map); }
+    this.segs.push(poly);
+
+    Audio.play("pencil", durMs/1000);
+    if(!REDUCED) this.addPenTip(points[0]);
+
+    // Boundary move: glide to leg start at target zoom (the ONLY place zoom may change).
+    const startDraw = () => {
+      const t0 = (performance&&performance.now)?performance.now():Date.now();
+      const ease = x => x<0.5 ? 2*x*x : 1 - Math.pow(-2*x+2,2)/2;
+      let lastPan = 0, finished=false;
+      const finish = () => {
+        if(finished) return; finished=true;
+        if(this.watchdog){ clearTimeout(this.watchdog); this.watchdog=null; }
+        if(this.raf){ cancelAnimationFrame(this.raf); this.raf=null; }
+        try{ poly.setLatLngs(points); if(stop.walk) poly.setStyle({dashArray:"3,10"}); }catch(e){}
+        try{ map.setView(this.framed(points[points.length-1], targetZoom, this.frameOffset("settle")), targetZoom, {animate:false}); }catch(e){}
+        this.removePenTip();
+        done();
+      };
+      const frame = () => {
+        const now=(performance&&performance.now)?performance.now():Date.now();
+        let t=(now-t0)/durMs; if(t>1) t=1;
+        const e=ease(t);
+        const idx=Math.min(points.length-1, Math.floor(e*(points.length-1)));
+        try{ poly.setLatLngs(points.slice(0,idx+1)); }catch(_){}
+        if(now-lastPan > 33){ lastPan=now; try{ map.panTo(this.framed(points[idx],targetZoom,this.frameOffset("draw")),{animate:false}); }catch(_){} }
+        if(this.penTip){ try{ this.penTip.setLatLng(points[idx]); }catch(_){} }
+        if(t<1){ this.raf=requestAnimationFrame(frame); } else finish();
+      };
+      this.raf=requestAnimationFrame(frame);
+      this.watchdog=setTimeout(finish, durMs+900);
+    };
+
+    const curZoom = map.getZoom();
+    const startCenter = this.framed(points[0], targetZoom, drawOff);
+    if(Math.abs(curZoom-targetZoom) > 0.05 && !REDUCED){
+      // zoom change → cinematic flyTo at boundary, then draw. Force the zoom to have
+      // settled at target before panning, so a stray/early kick never pans mid-zoom
+      // (which would blank the CARTO raster tiles for the whole leg).
+      let started=false;
+      const kick=()=>{ if(started) return; started=true;
+        this._pendingMove=null;
+        if(this._kickSafety){ clearTimeout(this._kickSafety); this._kickSafety=null; }
+        try{ if(Math.abs(map.getZoom()-targetZoom)>0.01) map.setView(startCenter,targetZoom,{animate:false}); }catch(e){}
+        startDraw();
+      };
+      try{
+        map.flyTo(startCenter, targetZoom, {duration:0.55, easeLinearity:.25});
+        this._pendingMove = ()=> setTimeout(kick, 30);
+        map.once("moveend", this._pendingMove);
+        this._kickSafety = setTimeout(kick, 950); // safety if moveend never fires
+      }catch(e){ try{map.setView(startCenter,targetZoom,{animate:false});}catch(_){}; kick(); }
+    } else {
+      try{ map.setView(startCenter, targetZoom, {animate:false}); }catch(e){}
+      startDraw();
+    }
+  },
+
+  clearRoute(){
+    if(this.raf) cancelAnimationFrame(this.raf);
+    if(this.watchdog) clearTimeout(this.watchdog);
+    if(this._kickSafety){ clearTimeout(this._kickSafety); this._kickSafety=null; }
+    if(this._pendingMove && this.map){ try{ this.map.off("moveend", this._pendingMove); }catch(e){} this._pendingMove=null; }
+    this.removePenTip();
+    if(this.map){
+      this.segs.forEach(l=>{ try{this.map.removeLayer(l);}catch(e){} });
+      this.marks.forEach(l=>{ try{this.map.removeLayer(l);}catch(e){} });
+      (this._fx||[]).forEach(l=>{ try{this.map.removeLayer(l);}catch(e){} });
+    }
+    this.segs=[]; this.marks=[]; this._fx=[];
+  },
+  shimmerRoute(cb){
+    // one traveling gold shimmer pass along the whole (already-framed) route
+    const L=window.L, map=this.map;
+    if(!map){ cb&&cb(); return; }
+    const allPts = [];
+    this.segs.forEach(p=>{ try{ p.getLatLngs().forEach(ll=>allPts.push(ll)); }catch(e){} });
+    if(!allPts.length || REDUCED){ cb&&cb(); return; }
+    const shimmer = L.polyline([allPts[0]],{color:"#F4D680",weight:9,opacity:.9,lineCap:"round",renderer:this.renderer,noClip:true}).addTo(map);
+    const glow = L.polyline([allPts[0]],{color:"#FFF3C8",weight:3,opacity:.95,lineCap:"round",renderer:this.renderer,noClip:true}).addTo(map);
+    this._fx = [shimmer, glow];
+    const t0=(performance&&performance.now)?performance.now():Date.now(), dur=1700, tail=Math.max(10,Math.floor(allPts.length*0.12));
+    let called=false; const finishFx=()=>{ if(called) return; called=true; try{map.removeLayer(shimmer);map.removeLayer(glow);}catch(e){} this._fx=[]; cb&&cb(); };
+    const step=()=>{
+      const now=(performance&&performance.now)?performance.now():Date.now();
+      let t=(now-t0)/dur; if(t>1) t=1;
+      const head=Math.floor(t*(allPts.length-1));
+      const seg=allPts.slice(Math.max(0,head-tail), head+1);
+      try{ shimmer.setLatLngs(seg); glow.setLatLngs(seg); }catch(e){}
+      if(t<1) requestAnimationFrame(step);
+      else finishFx();
+    };
+    requestAnimationFrame(step);
+  },
+  frameAll(cb){
+    const L=window.L, map=this.map;
+    const pts=[HOME.ll, ...STOPS.map(s=>s.ll)];
+    let called=false; const once=()=>{ if(called) return; called=true; cb&&cb(); };
+    try{
+      const b=L.latLngBounds(pts);
+      const opts = isDesktop()
+        ? { paddingTopLeft:[80,110], paddingBottomRight:[410,90], duration:REDUCED?0.01:1.6, easeLinearity:.2, maxZoom:13 }
+        : { paddingTopLeft:[42,150], paddingBottomRight:[42,164], duration:REDUCED?0.01:1.6, easeLinearity:.2, maxZoom:13 };
+      map.flyToBounds(b, opts);
+      map.once("moveend", once);
+      setTimeout(once, REDUCED?60:1900);
+    }catch(e){ once(); }
+  }
+};
+
+/* =========================================================================
+   SPARKLES (Sant Ambroeus — her favorite)
+   ========================================================================= */
+function sparkleBurst(latlng){
+  if(REDUCED) return;
+  const layer=document.getElementById("sparkles");
+  let pt; try{ pt=Director.map.latLngToContainerPoint(latlng); }catch(e){ return; }
+  const glyphs=["✨","🌟","♡","✦","💛"];
+  const N=14;
+  for(let k=0;k<N;k++){
+    const s=document.createElement("div"); s.className="sparkle";
+    s.textContent=glyphs[k%glyphs.length];
+    const dx=(k/N-0.5)*120 + (Math.sin(k*2.3)*18);
+    s.style.left=(pt.x+dx)+"px"; s.style.top=(pt.y-4)+"px";
+    s.style.fontSize=(13+ (k%3)*5)+"px";
+    const durS=1.1+(k%4)*0.18, delayS=k*0.035;
+    s.style.animation=`sparkleUp ${durS}s var(--ease-glide) ${delayS}s forwards`;
+    layer.appendChild(s);
+    setTimeout(()=>s.remove(), (durS+delayS)*1000 + 200);
+  }
+}
+
+/* =========================================================================
+   BOTTOM SHEET (mobile) — transform-only, 3 detents
+   ========================================================================= */
+const Sheet = {
+  el:null, DETENT:{peek:0,half:0,full:0}, current:"peek",
+  init(){
+    this.el=document.getElementById("sheet");
+    this.measure();
+    this.set("peek", false);
+    const grab=document.getElementById("grab");
+    let startY=0, startTr=0, dragging=false, moved=false, lastY=0, lastT=0, vel=0;
+    const onDown=(e)=>{
+      if(isDesktop()) return;
+      dragging=true; moved=false; this.el.classList.add("dragging");
+      startY=(e.touches?e.touches[0].clientY:e.clientY);
+      startTr=this._tr; lastY=startY; lastT=performance.now(); vel=0;
+    };
+    const onMove=(e)=>{
+      if(!dragging) return;
+      const y=(e.touches?e.touches[0].clientY:e.clientY);
+      let d=y-startY; if(Math.abs(d)>3) moved=true;
+      let tr=startTr+d;
+      const min=this.DETENT.full, max=this.DETENT.peek;
+      if(tr<min) tr=min-(min-tr)*0.35;        // rubber band top
+      if(tr>max) tr=max+(tr-max)*0.3;          // rubber band bottom
+      this.applyPx(tr);
+      const now=performance.now(); const dt=now-lastT; if(dt>0){ vel=(y-lastY)/dt; } lastY=y; lastT=now;
+      if(e.cancelable) e.preventDefault();
+    };
+    const onUp=()=>{
+      if(!dragging) return; dragging=false; this.el.classList.remove("dragging");
+      const tr=this._tr;
+      // choose detent by position + velocity
+      let target;
+      if(vel>0.5) target = tr>this.DETENT.half ? "peek" : "half";
+      else if(vel<-0.5) target = tr<this.DETENT.half ? "full" : "half";
+      else {
+        const order=[["full",this.DETENT.full],["half",this.DETENT.half],["peek",this.DETENT.peek]];
+        target=order.reduce((a,b)=>Math.abs(b[1]-tr)<Math.abs(a[1]-tr)?b:a)[0];
+      }
+      this.set(target, true);
+    };
+    grab.addEventListener("touchstart",onDown,{passive:true});
+    grab.addEventListener("mousedown",onDown);
+    window.addEventListener("touchmove",onMove,{passive:false});
+    window.addEventListener("mousemove",onMove);
+    window.addEventListener("touchend",onUp);
+    window.addEventListener("touchcancel",onUp);
+    window.addEventListener("mouseup",onUp);
+    // tap handle toggles peek<->half
+    grab.addEventListener("click",()=>{ if(moved) return; this.set(this.current==="peek"?"half":"peek", true); });
+  },
+  measure(){
+    const h=this.el.getBoundingClientRect().height || window.innerHeight*0.7;
+    // translateY values (px) for each detent (0 = fully open, whole sheet above the action bar)
+    this.DETENT.full = 0;
+    this.DETENT.half = Math.max(0, h - window.innerHeight*0.46);
+    const peekVisible = 56; // px of sheet visible above the action bar at peek (handle + sliver)
+    this.DETENT.peek = Math.max(0, h - peekVisible);
+  },
+  applyPx(px){ this._tr=px; this.el.style.transform = `translateY(${px}px)`; },
+  set(name, animate){
+    if(isDesktop()){ this.el.style.transform="none"; this.current="full"; return; }
+    this.current=name;
+    if(!animate) this.el.style.transition="none";
+    this.applyPx(this.DETENT[name]);
+    if(!animate){ this.el.offsetHeight; this.el.style.transition=""; }
+  },
+  onResize(){ this.measure(); if(!isDesktop()) this.set(this.current,false); else this.el.style.transform="none"; }
+};
+
+/* =========================================================================
+   UI — stubs, meter, controls
+   ========================================================================= */
+const UI = {
+  stubsEl:null, meterEl:null, primary:null, primaryTxt:null, primaryCav:null, introEl:null,
+  build(){
+    this.stubsEl=document.getElementById("stubs");
+    this.meterEl=document.getElementById("meter");
+    this.primary=document.getElementById("primary");
+    this.primaryTxt=this.primary.querySelector(".txt");
+    this.primaryCav=this.primary.querySelector(".cav");
+    this.introEl=document.getElementById("introMsg");
+    for(let i=0;i<STOPS.length;i++){ const n=document.createElement("span"); n.className="notch"; this.meterEl.appendChild(n); }
+  },
+  setMeter(step){
+    [...this.meterEl.children].forEach((n,i)=> n.classList.toggle("on", i<step));
+    this.meterEl.setAttribute("aria-valuenow", String(step));
+  },
+  announce(text){ const l=document.getElementById("live"); if(l) l.textContent=text; },
+  setPrimary(label, cav, opts){
+    this.primaryTxt.textContent=label;
+    this.primaryCav.textContent=cav||"";
+    this.primary.classList.toggle("pulse", !!(opts&&opts.pulse));
+    this.primary.disabled = !!(opts&&opts.disabled);
+  },
+  markSecretRow(show){
+    const ex=this.stubsEl.querySelector(".secret"); if(ex) ex.remove();
+    if(!show) return;
+    const d=document.createElement("div"); d.className="secret";
+    d.innerHTML=`<div class="rail"><div class="conn"></div><div class="q">?</div></div><div class="t">the next stop is a secret…</div>`;
+    this.stubsEl.appendChild(d);
+  },
+  addStub(stop){
+    // collapse previous current
+    const prev=this.stubsEl.querySelector(".stub.current");
+    if(prev){ prev.classList.remove("current"); prev.classList.add("past"); }
+    const ts=transitStyle(stop.transit);
+    const ring=stop.ring||"#C9A24B";
+    const idx=String(stop.i).padStart(2,"0");
+    const el=document.createElement("div");
+    el.className="stub current"+(stop.walk?" walk":"");
+    el.style.setProperty("--ring",ring);
+    el.style.setProperty("--legc",stop.legColor);
+    const tilt=((stop.i*37)%5-2)*1.1; // deterministic small tilt
+    const noteHtml = stop.note ? `<div class="note">${stop.note}</div>` : "";
+    el.innerHTML=`
+      <div class="rail"><div class="conn"></div>
+        <div class="node">${stop.icon}</div></div>
+      <div class="body">
+        <div class="meta">${idx} · ${stop.tag} · ${stop.time}</div>
+        <div class="name-wipe"><div class="name">${stop.name}</div></div>
+        <div class="card" style="transform:translateY(14px) rotate(${tilt.toFixed(2)}deg)">
+          <div class="washi"></div>
+          <div class="locrow"><span>📍 ${stop.loc}</span>
+            <span class="pill" style="background:${ts.bg};color:${ts.fg}">${ts.dot} ${stop.transit}</span></div>
+          <div class="fact">${stop.fact}</div>
+          ${noteHtml}
+        </div>
+      </div>`;
+    // insert before secret row if present
+    const secret=this.stubsEl.querySelector(".secret");
+    this.stubsEl.insertBefore(el, secret);
+    // trigger reveal on next frame (transform-only entrances)
+    requestAnimationFrame(()=> requestAnimationFrame(()=> el.classList.add("reveal")));
+    this.announce("Stop "+stop.i+" of 6: "+stop.name+", "+stop.time+". "+stop.loc+".");
+    this.scrollToStub(el);
+  },
+  scrollToStub(el){
+    const go=()=>{ if(isDesktop()){ this.stubsEl.scrollTop=this.stubsEl.scrollHeight; } };
+    requestAnimationFrame(go); setTimeout(go,240); setTimeout(go,560);
+  },
+  clearStubs(){
+    this.stubsEl.querySelectorAll(".stub,.secret").forEach(n=>n.remove());
+    if(!this.stubsEl.contains(this.introEl)) this.stubsEl.appendChild(this.introEl);
+    this.introEl.style.display="";
+  },
+  hideIntro(){ this.introEl.style.display="none"; }
+};
+
+/* =========================================================================
+   FLOW — state machine
+   ========================================================================= */
+const Flow = {
+  step:0, animating:false, ended:false,
+  begin(){ UI.hideIntro(); this.advance(); },
+  advance(){
+    if(this.animating) return;
+    if(this.ended){ this.restart(); return; }
+    const next=this.step+1;
+    if(next>STOPS.length){ this.restart(); return; }
+    const stop=STOPS[next-1];
+    this.animating=true;
+    UI.setPrimary("…", "", {disabled:true, pulse:false});
+    Audio.play("kachunk");
+    if(!isDesktop()) Sheet.set("peek", true);
+    UI.markSecretRow(false);
+
+    if(stop.caption) Caption.show(stop.caption);
+
+    Director.animateLeg(stop, ()=>{
+      Caption.hide();
+      Director.addStopPin(stop);
+      Audio.play(stop.sound);
+      if(stop.favorite){ sparkleBurst(stop.ll); setTimeout(()=>Audio.play("sparkle"), 180); }
+      this.step=next;
+      UI.setMeter(next);
+      UI.addStub(stop);
+      if(!isDesktop()) Sheet.set("half", true);
+
+      if(stop.final){ this.finale(); }
+      else {
+        this.animating=false;
+        const nextStop=STOPS[next]; // upcoming
+        UI.markSecretRow(true);
+        UI.setPrimary("Next stop", "→", {pulse:false, disabled:false});
+      }
+    });
+  },
+  finale(){
+    document.getElementById("paper").classList.add("deep");
+    UI.markSecretRow(false);
+    if(!isDesktop()) Sheet.set("peek", true);
+    UI.announce("Our whole day, revealed. Tap Relive our day to watch it again.");
+    const finish=()=>{
+      if(this.step!==STOPS.length) return;          // guard: bailed out / restarted
+      if(this._finaleWD){ clearTimeout(this._finaleWD); this._finaleWD=null; }
+      const f=document.getElementById("finale");
+      if(f.classList.contains("thunk")) return;
+      f.classList.add("thunk");
+      Audio.play("final"); setTimeout(()=>Audio.play("cake"), 260);
+      this.ended=true; this.animating=false;
+      UI.setPrimary("Relive our day", "↺", {pulse:true, disabled:false});
+    };
+    this._finaleWD = setTimeout(finish, 7000);        // never leave the button stuck
+    // pull back to frame the whole route first, THEN shimmer along the now-visible route
+    Director.frameAll(()=> Director.shimmerRoute(finish));
+  },
+  restart(){
+    if(this._finaleWD){ clearTimeout(this._finaleWD); this._finaleWD=null; }
+    this.animating=false; this.ended=false; this.step=0;
+    document.getElementById("finale").classList.remove("thunk");
+    document.getElementById("paper").classList.remove("deep");
+    Caption.hide();
+    Director.clearRoute();
+    Director.resetView(false);
+    UI.clearStubs();
+    UI.setMeter(0);
+    UI.markSecretRow(false);
+    UI.setPrimary("Begin our day", "✦", {pulse:true, disabled:false});
+    if(!isDesktop()) Sheet.set("half", true);
+  }
+};
+
+/* Wander caption controller */
+const Caption = {
+  el:null, timer:null,
+  init(){ this.el=document.getElementById("caption"); },
+  show(text){
+    clearTimeout(this.timer);
+    this.el.textContent=text;
+    this.el.classList.remove("hide"); this.el.classList.add("show");
+  },
+  hide(){
+    if(!this.el.classList.contains("show")) return;
+    this.el.classList.remove("show"); this.el.classList.add("hide");
+    this.timer=setTimeout(()=>{ this.el.classList.remove("hide"); }, 420);
+  }
+};
+
+/* =========================================================================
+   BOOT
+   ========================================================================= */
+function waitForLeaflet(cb, failCb){
+  if(window.L){ cb(); return; }
+  let n=0; const t=setInterval(()=>{
+    if(window.L){ clearInterval(t); cb(); }
+    else if(++n>100){ clearInterval(t); failCb&&failCb(); }
+  },80);
+}
+function enterFallback(){
+  // Leaflet/tiles unavailable — degrade to a fully readable, still tap-through itinerary.
+  Director.map = null;
+  const m=document.getElementById("map");
+  if(m && !m.querySelector(".map-fallback")){
+    const note=document.createElement("div");
+    note.className="map-fallback";
+    note.style.cssText="position:absolute;left:0;right:0;top:40%;text-align:center;color:var(--ink-soft);font-family:'Caveat',cursive;font-size:20px;line-height:1.5;padding:0 34px;z-index:2;";
+    note.textContent="(the map's being shy today — but here's our whole day anyway, Bella 💛)";
+    m.appendChild(note);
+  }
+}
+
+function boot(){
+  UI.build();
+  Caption.init();
+  Sheet.init();
+  waitForLeaflet(()=> Director.init(), ()=> enterFallback());
+
+  // mute
+  const muteBtn=document.getElementById("mute");
+  muteBtn.addEventListener("click",()=>{ Audio.unlock(); const m=!Audio.muted; Audio.setMuted(m); muteBtn.textContent=m?"🔇":"🔊"; muteBtn.setAttribute("aria-label", m?"Unmute sound":"Mute sound"); });
+
+  // primary control (debounced so an over-eager double tap can't skip a beat)
+  let lastPrimary=0;
+  document.getElementById("primary").addEventListener("click",()=>{
+    const now=(performance&&performance.now)?performance.now():Date.now();
+    if(now-lastPrimary < 380) return;
+    lastPrimary=now;
+    Audio.play("click");
+    if(Flow.step===0 && !Flow.ended) Flow.begin();
+    else Flow.advance();
+  });
+
+  // cover open
+  const cover=document.getElementById("cover"), openBtn=document.getElementById("openBtn");
+  openBtn.addEventListener("click",()=>{
+    if(cover.classList.contains("breaking")) return;   // guard double-tap
+    Audio.unlock(); Audio.play("pock");
+    cover.classList.add("breaking");
+    setTimeout(()=>{ cover.classList.add("gone"); }, 480);
+    setTimeout(()=>{ if(!isDesktop()) Sheet.set("half", true); }, 700);
+    setTimeout(()=>{ try{ document.getElementById("primary").focus({preventScroll:true}); }catch(e){} }, 860);
+  });
+
+  // keep audio alive across iOS backgrounding / interruptions
+  document.addEventListener("visibilitychange",()=>{ if(!document.hidden && Audio.ctx) Audio.unlock(); });
+
+  // resize / orientation
+  let rt;
+  window.addEventListener("resize",()=>{
+    clearTimeout(rt);
+    rt=setTimeout(()=>{
+      setAppHeight();
+      Sheet.onResize();
+      if(Director.map){ Director.map.invalidateSize(); if(Flow.step===0 && !Flow.ended) Director.resetView(false); }
+    },160);
+  });
+}
+
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",boot);
+else boot();
+</script>
+</body>
+</html>
