@@ -552,8 +552,22 @@ const Director = {
   },
   resetView(animate){
     if(!this.map) return;
-    const z=this.homeZoom();
-    try{ this.map.setView(this.framed(HOME.ll, z, this.frameOffset("settle")), z, {animate:!!animate}); }catch(e){}
+    const L=window.L;
+    try{
+      // Frame both islands at once: Manhattan (west) ↔ Home on Long Island (east),
+      // padded for the masthead (top) and the sheet / side column so it sits in view.
+      const b = L.latLngBounds([[40.60,-74.06],[40.81,-73.65]]);
+      let opts;
+      if(isDesktop()){
+        opts = { paddingTopLeft:[64,104], paddingBottomRight:[410,66], animate:!!animate, maxZoom:12 };
+      } else {
+        const H = window.innerHeight;
+        opts = { paddingTopLeft:[22,134], paddingBottomRight:[22, Math.round(H*0.46)+84], animate:!!animate, maxZoom:12 };
+      }
+      this.map.fitBounds(b, opts);
+    }catch(e){
+      try{ const z=this.homeZoom(); this.map.setView(this.framed(HOME.ll, z, this.frameOffset("settle")), z, {animate:!!animate}); }catch(_){}
+    }
   },
   makeStamp(cls, ring, icon, size){
     const L=window.L;
@@ -1046,7 +1060,7 @@ function boot(){
     if(cover.classList.contains("breaking")) return;   // guard double-tap
     Audio.unlock(); Audio.play("pock");
     cover.classList.add("breaking");
-    setTimeout(()=>{ cover.classList.add("gone"); }, 480);
+    setTimeout(()=>{ cover.classList.add("gone"); if(Director.map) Director.resetView(false); }, 480);
     setTimeout(()=>{ if(!isDesktop()) Sheet.set("half", true); }, 700);
     setTimeout(()=>{ try{ document.getElementById("primary").focus({preventScroll:true}); }catch(e){} }, 860);
   });
